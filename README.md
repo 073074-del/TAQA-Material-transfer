@@ -117,10 +117,21 @@ moment a request comes in.
 - **Changing the PIN:** In Render, go to your service → **Environment**,
   update `ADMIN_PIN`, save. The service restarts automatically with the
   new PIN.
-- **Adding inventory that wasn't in the original spreadsheet:** Admin →
-  Inventory → **+ Add Item**.
-- **Editing quantities or storage locations:** Admin → Inventory, edit
-  directly in the list — it saves as you tab away from the field.
+- **Recording a new delivery (the normal way):** keep logging it in your
+  Excel workbook the way you always have — a new row per item on the
+  RECEIVED ITEMS tab, under its MRR #. Then go to Admin → Inventory →
+  **Import from Excel…** and pick that same workbook file. New rows get
+  added as new inventory items; rows the app has already seen (matched by
+  the workbook's own per-row ID) get their details refreshed instead of
+  duplicated. If you correct a received quantity in Excel and re-import,
+  the app adjusts what's available by that difference rather than
+  overwriting it — so anything already picked up through the app isn't
+  affected. A toast after each import tells you how many rows were added,
+  updated, or left unchanged.
+- **Adding a one-off item that isn't in Excel:** Admin → Inventory →
+  **+ Add Item**.
+- **Editing quantities or storage locations by hand:** Admin → Inventory,
+  edit directly in the list — it saves as you tab away from the field.
 - **Backups:** Admin → Alerts → **Download Backup** gives you the full
   inventory + request history as a file. Worth doing occasionally, and
   definitely right before you push a code change to redeploy.

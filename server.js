@@ -16,6 +16,7 @@ const path = require('path');
 const crypto = require('crypto');
 const webpush = require('web-push');
 const storage = require('./lib/storage');
+const { parseReceivedItems } = require('./lib/xlsxImport');
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_PIN = process.env.ADMIN_PIN || '7749';
@@ -286,6 +287,33 @@ app.delete(
     storage.deleteInventoryItem(req.params.id);
     broadcastSSE('inventory_deleted', { id: req.params.id });
     res.json({ ok: true });
+  })
+);
+
+// Update inventory straight from the RECEIVED ITEMS tab of Ryan's Excel
+// workbook, instead of re-typing each new item by hand. The browser sends
+// the .xlsx as base64 in a JSON body (simplest way to do a file upload
+// without adding a multipart-parsing dependency); a dedicated, larger body
+// limit is used here only, since the app-wide limit (256kb) is sized for
+// small JSON requests, not a spreadsheet.
+const importBodyParser = express.json({ limit: '20mb' });
+app.post(
+  '/api/admin/inventory/import',
+  requireAdmin,
+  importBodyParser,
+  asyncRoute(async (req, res) => {
+    const { dataBase64 } = req.body || {};
+    if (!dataBase64) return res.status(400).json({ error: 'no file received' });
+    let buffer;
+    try {
+      buffer = Buffer.from(dataBase64, 'base64');
+    } catch (err) {
+      return res.status(400).json({ error: 'could not decode the uploaded file' });
+    }
+    const { rows, warnings } = parseReceivedItems(buffer);
+    const result = storage.importInventoryRows(rows);
+    broadcastSSE('inventory_updated', { imported: true });
+    res.json({ ...result, warnings });
   })
 );
 

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "xlsx": "^0.18.5"
   }
 }
