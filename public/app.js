@@ -97,7 +97,7 @@
       .map((d) => `<button type="button" class="chip" data-discipline="${esc(d)}" aria-pressed="${d === state.discipline}">${esc(d)}</button>`)
       .join('');
     const areaOptionsHtml = areas()
-      .map((a) => `<option value="${esc(a)}" ${a === state.area ? 'selected' : ''}>${esc(a === 'All' ? 'All Areas' : a)}</option>`)
+      .map((a) => `<option value="${esc(a)}" ${a === state.area ? 'selected' : ''}>${esc(a === 'All' ? 'BY-AREA' : a)}</option>`)
       .join('');
     // rebuild, keeping the "in stock only" toggle which lives in the same row
     wrap.innerHTML = chipsHtml +
