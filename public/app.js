@@ -9,6 +9,7 @@
     cart: new Map(), // itemId -> qty
     search: '',
     discipline: 'All',
+    area: 'All',
     inStockOnly: true,
     adminUnlocked: false,
     adminTab: 'requests',
@@ -85,19 +86,32 @@
     return ['All', ...Array.from(set).sort()];
   }
 
+  function areas() {
+    const set = new Set(state.inventory.map((i) => i.area || 'Unassigned'));
+    return ['All', ...Array.from(set).sort()];
+  }
+
   function renderChips() {
     const wrap = $('#discipline-chips');
     const chipsHtml = disciplines()
       .map((d) => `<button type="button" class="chip" data-discipline="${esc(d)}" aria-pressed="${d === state.discipline}">${esc(d)}</button>`)
       .join('');
+    const areaOptionsHtml = areas()
+      .map((a) => `<option value="${esc(a)}" ${a === state.area ? 'selected' : ''}>${esc(a === 'All' ? 'All Areas' : a)}</option>`)
+      .join('');
     // rebuild, keeping the "in stock only" toggle which lives in the same row
-    const stockToggle = $('#in-stock-only');
-    wrap.innerHTML = chipsHtml + `<label class="stock-toggle"><input type="checkbox" id="in-stock-only" ${state.inStockOnly ? 'checked' : ''}> In stock only</label>`;
+    wrap.innerHTML = chipsHtml +
+      `<select class="area-select" id="area-select" aria-label="Filter by area">${areaOptionsHtml}</select>` +
+      `<label class="stock-toggle"><input type="checkbox" id="in-stock-only" ${state.inStockOnly ? 'checked' : ''}> In stock only</label>`;
     $$('.chip', wrap).forEach((btn) => btn.addEventListener('click', () => {
       state.discipline = btn.dataset.discipline;
       renderChips();
       renderInventoryList();
     }));
+    $('#area-select', wrap).addEventListener('change', (e) => {
+      state.area = e.target.value;
+      renderInventoryList();
+    });
     $('#in-stock-only').addEventListener('change', (e) => {
       state.inStockOnly = e.target.checked;
       renderInventoryList();
@@ -108,12 +122,14 @@
     const q = state.search.trim().toLowerCase();
     return state.inventory.filter((it) => {
       if (state.discipline !== 'All' && (it.discipline || 'Other') !== state.discipline) return false;
+      if (state.area !== 'All' && (it.area || 'Unassigned') !== state.area) return false;
       if (state.inStockOnly && it.qtyAvailable <= 0) return false;
       if (!q) return true;
       return (
         (it.description || '').toLowerCase().includes(q) ||
         (it.tag || '').toLowerCase().includes(q) ||
         String(it.mrr || '').toLowerCase().includes(q) ||
+        (it.area || '').toLowerCase().includes(q) ||
         (it.storageLocation || '').toLowerCase().includes(q)
       );
     });
@@ -121,7 +137,7 @@
 
   function itemRowHtml(it) {
     const qty = state.cart.get(it.id) || 0;
-    const meta = [it.tag ? 'Tag ' + it.tag : null, it.mrr ? 'MRR ' + it.mrr : null, it.storageLocation || null].filter(Boolean);
+    const meta = [it.tag ? 'Tag ' + it.tag : null, it.area ? 'Area ' + it.area : null, it.mrr ? 'MRR ' + it.mrr : null, it.storageLocation || null].filter(Boolean);
     return `
       <div class="item-row ${qty > 0 ? 'selected' : ''}" data-id="${esc(it.id)}">
         <div class="item-main">
@@ -459,6 +475,7 @@
     return state.inventory.filter((it) =>
       (it.description || '').toLowerCase().includes(q) ||
       (it.tag || '').toLowerCase().includes(q) ||
+      (it.area || '').toLowerCase().includes(q) ||
       String(it.mrr || '').toLowerCase().includes(q)
     );
   }
@@ -478,6 +495,10 @@
           <input type="text" inputmode="numeric" class="inv-edit qty-edit" value="${it.qtyAvailable}">
         </div>
         <div>
+          <span class="inv-field-label">Area</span>
+          <input type="text" class="inv-edit loc area-edit" value="${esc(it.area || '')}">
+        </div>
+        <div>
           <span class="inv-field-label">Location</span>
           <input type="text" class="inv-edit loc loc-edit" value="${esc(it.storageLocation || '')}">
         </div>
@@ -486,6 +507,7 @@
     $$('.inv-row', container).forEach((row) => {
       const id = row.dataset.id;
       const qtyInput = $('.qty-edit', row);
+      const areaInput = $('.area-edit', row);
       const locInput = $('.loc-edit', row);
       async function saveQty() {
         const n = parseInt(qtyInput.value, 10);
@@ -497,6 +519,15 @@
           toast('Quantity updated.');
         } catch (err) { toast(err.message, true); }
       }
+      async function saveArea() {
+        try {
+          await api('/api/admin/inventory/' + id, { method: 'PATCH', body: { area: areaInput.value } });
+          const item = state.inventory.find((i) => i.id === id);
+          if (item) item.area = areaInput.value;
+          toast('Area updated.');
+          renderChips();
+        } catch (err) { toast(err.message, true); }
+      }
       async function saveLoc() {
         try {
           await api('/api/admin/inventory/' + id, { method: 'PATCH', body: { storageLocation: locInput.value } });
@@ -506,6 +537,7 @@
         } catch (err) { toast(err.message, true); }
       }
       qtyInput.addEventListener('change', saveQty);
+      areaInput.addEventListener('change', saveArea);
       locInput.addEventListener('change', saveLoc);
     });
   }
@@ -520,6 +552,7 @@
       <form id="item-form">
         <div class="field"><label for="it-desc">Description *</label><input id="it-desc" required placeholder="e.g. Gasket, 4in 300#"></div>
         <div class="field"><label for="it-discipline">Discipline</label><input id="it-discipline" placeholder="e.g. Piping"></div>
+        <div class="field"><label for="it-area">Area</label><input id="it-area" placeholder="e.g. North Yard"></div>
         <div class="field"><label for="it-tag">Tag / location #</label><input id="it-tag"></div>
         <div class="field"><label for="it-qty">Qty available *</label><input id="it-qty" inputmode="numeric" required placeholder="0"></div>
         <div class="field"><label for="it-loc">Storage location</label><input id="it-loc"></div>
@@ -535,6 +568,7 @@
         await api('/api/admin/inventory', { method: 'POST', body: {
           description: $('#it-desc').value,
           discipline: $('#it-discipline').value,
+          area: $('#it-area').value,
           tag: $('#it-tag').value,
           qtyAvailable: $('#it-qty').value,
           qtyReceived: $('#it-qty').value,
