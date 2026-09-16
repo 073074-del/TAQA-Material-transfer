@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ferrier Field Inventory</title>
+<meta name="description" content="Search TAQA Ferrier material inventory and send pickup requests.">
+<meta name="theme-color" content="#c8590d">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23c8590d'/%3E%3Ctext x='50' y='68' font-size='58' font-family='Arial Black,sans-serif' font-weight='900' fill='white' text-anchor='middle'%3EF%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-text">
+        <h1>Ferrier Field Inventory</h1>
+        <p>TAQA Ferrier Gas Plant &middot; Material Control</p>
+      </div>
+    </div>
+    <div class="tabbar" role="tablist">
+      <button type="button" id="tab-search" role="tab" aria-selected="true">Search &amp; Request</button>
+      <button type="button" id="tab-admin" role="tab" aria-selected="false">
+        Admin <span class="badge" id="admin-badge" hidden>0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============== SEARCH / REQUEST VIEW ============== -->
+  <section class="view" id="view-search">
+    <div class="container">
+      <div class="search-bar">
+        <div class="search-input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" class="search-input" id="search-input" placeholder="Search by name, tag, or MRR #&hellip;" autocomplete="off">
+        </div>
+        <div class="filter-row" id="discipline-chips">
+          <!-- chips injected by app.js -->
+          <label class="stock-toggle">
+            <input type="checkbox" id="in-stock-only" checked>
+            In stock only
+          </label>
+        </div>
+      </div>
+      <div class="result-count" id="result-count"></div>
+      <div id="inventory-list"></div>
+    </div>
+
+    <div class="container" style="padding-top:0;">
+      <div class="cart-bar" id="cart-bar">
+        <span><strong id="cart-count">0</strong> item(s) selected</span>
+        <button type="button" class="btn btn-accent" id="review-btn">Review &amp; Send &rarr;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== ADMIN VIEW ============== -->
+  <section class="view" id="view-admin" hidden>
+
+    <div class="container" id="admin-lock-wrap">
+      <div class="lock-card">
+        <div class="lock-icon">&#128274;</div>
+        <h2>Admin Access</h2>
+        <p>Enter your PIN to manage requests and inventory.</p>
+        <form id="pin-form">
+          <input class="pin-input" id="pin-input" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="&bull;&bull;&bull;&bull;">
+          <div class="lock-error" id="pin-error"></div>
+          <button type="submit" class="btn btn-accent btn-block" style="margin-top:14px;">Unlock</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="container" id="admin-main" hidden>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px;">
+        <div class="subtabs" role="tablist">
+          <button type="button" id="subtab-requests" role="tab" aria-selected="true">Requests <span class="badge" id="requests-badge" hidden>0</span></button>
+          <button type="button" id="subtab-inventory" role="tab" aria-selected="false">Inventory</button>
+          <button type="button" id="subtab-alerts" role="tab" aria-selected="false">Alerts</button>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" id="lock-btn">Lock</button>
+      </div>
+
+      <!-- Requests sub-tab -->
+      <div id="admin-requests">
+        <div class="section-title">Pending</div>
+        <div id="pending-list"></div>
+        <div class="section-title" id="history-title" style="cursor:pointer;">History &#9662;</div>
+        <div id="history-list" hidden></div>
+      </div>
+
+      <!-- Inventory sub-tab -->
+      <div id="admin-inventory" hidden>
+        <div class="search-bar" style="position:static; padding-top:0;">
+          <div class="search-input-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" class="search-input" id="admin-search-input" placeholder="Search inventory&hellip;" autocomplete="off">
+          </div>
+        </div>
+        <button type="button" class="btn btn-accent btn-sm" id="add-item-btn" style="margin:10px 0;">+ Add Item</button>
+        <div id="admin-inventory-list"></div>
+      </div>
+
+      <!-- Alerts sub-tab -->
+      <div id="admin-alerts" hidden>
+        <div class="alert-card">
+          <h3>Push Notifications</h3>
+          <p>Turn these on for any phone or computer you want alerted the instant a request comes in &mdash; works even if this tab isn&rsquo;t open. On iPhone, add this page to your Home Screen first (Share &rarr; Add to Home Screen), then open it from there to enable alerts.</p>
+          <button type="button" class="btn btn-accent" id="enable-push-btn">Enable Alerts on This Device</button>
+          <div id="push-status" style="margin-top:10px; font-size:13px; color:var(--text-muted);"></div>
+        </div>
+        <div class="alert-card">
+          <h3>Alerting Devices</h3>
+          <p>Devices currently set up to receive a push the moment someone submits a request.</p>
+          <div id="device-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="test-push-btn" style="margin-top:12px;">Send Test Alert</button>
+        </div>
+        <div class="alert-card">
+          <h3>While This Tab Is Open</h3>
+          <p>You&rsquo;ll also see an instant on-screen banner and hear a chime for every new request &mdash; no setup needed, this happens automatically whenever the Admin tab is open in a browser.</p>
+        </div>
+        <div class="alert-card">
+          <h3>Backup</h3>
+          <p>Download a full copy of your inventory and request history &mdash; worth doing now and then, especially right before you redeploy the app.</p>
+          <a class="btn btn-ghost" href="/api/admin/export" download>Download Backup</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Live in-app alert banner -->
+<div class="live-banner" id="live-banner">
+  <span id="live-banner-text"></span>
+  <button type="button" class="btn btn-sm" id="live-banner-btn">View</button>
+</div>
+
+<!-- Review & send modal -->
+<div class="modal-backdrop" id="review-modal" hidden>
+  <div class="modal">
+    <div id="review-modal-body"></div>
+  </div>
+</div>
+
+<!-- Add / edit inventory item modal -->
+<div class="modal-backdrop" id="item-modal" hidden>
+  <div class="modal">
+    <div id="item-modal-body"></div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toast-stack"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
