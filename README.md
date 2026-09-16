@@ -128,10 +128,18 @@ moment a request comes in.
   overwriting it — so anything already picked up through the app isn't
   affected. A toast after each import tells you how many rows were added,
   updated, or left unchanged.
+- **Searching by area:** add an **Area** column to the RECEIVED ITEMS tab
+  (any of the headers `Area`, `Work Area`, or `Zone` is recognized) and fill
+  it in per row — job-site zone, unit number, whatever your crew calls it.
+  Once imported, an "Area" dropdown appears next to the Discipline filter on
+  the Search & Request screen so your crew can narrow results to just their
+  area. Items with no Area value show up under "Unassigned" until you tag
+  them.
 - **Adding a one-off item that isn't in Excel:** Admin → Inventory →
   **+ Add Item**.
-- **Editing quantities or storage locations by hand:** Admin → Inventory,
-  edit directly in the list — it saves as you tab away from the field.
+- **Editing quantities, area, or storage locations by hand:** Admin →
+  Inventory, edit directly in the list — it saves as you tab away from the
+  field.
 - **Backups:** Admin → Alerts → **Download Backup** gives you the full
   inventory + request history as a file. Worth doing occasionally, and
   definitely right before you push a code change to redeploy.
