@@ -101,7 +101,11 @@
             <input type="search" class="search-input" id="admin-search-input" placeholder="Search inventory&hellip;" autocomplete="off">
           </div>
         </div>
-        <button type="button" class="btn btn-accent btn-sm" id="add-item-btn" style="margin:10px 0;">+ Add Item</button>
+        <div style="display:flex; gap:8px; margin:10px 0; flex-wrap:wrap;">
+          <button type="button" class="btn btn-accent btn-sm" id="add-item-btn">+ Add Item</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="import-excel-btn">Import from Excel&hellip;</button>
+          <input type="file" id="import-excel-input" accept=".xlsx" hidden>
+        </div>
         <div id="admin-inventory-list"></div>
       </div>
 

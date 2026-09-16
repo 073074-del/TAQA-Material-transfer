@@ -551,6 +551,50 @@
   $('#item-modal').addEventListener('click', (e) => { if (e.target === e.currentTarget) $('#item-modal').hidden = true; });
 
   // ------------------------------------------------------------------
+  // Import inventory from Ryan's Excel workbook (RECEIVED ITEMS tab)
+  // ------------------------------------------------------------------
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // reader.result is a data: URL like "data:...;base64,AAAA..."
+        const commaIdx = reader.result.indexOf(',');
+        resolve(reader.result.slice(commaIdx + 1));
+      };
+      reader.onerror = () => reject(reader.error || new Error('could not read file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  $('#import-excel-btn').addEventListener('click', () => $('#import-excel-input').click());
+  $('#import-excel-input').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+    const btn = $('#import-excel-btn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Importing…';
+    try {
+      const dataBase64 = await fileToBase64(file);
+      const result = await api('/api/admin/inventory/import', { method: 'POST', body: { dataBase64 } });
+      const parts = [];
+      if (result.added) parts.push(result.added + ' new item(s) added');
+      if (result.updated) parts.push(result.updated + ' updated');
+      if (result.unchanged) parts.push(result.unchanged + ' unchanged');
+      if (result.skipped) parts.push(result.skipped + ' row(s) skipped (no description)');
+      toast(parts.length ? parts.join(', ') + '.' : 'Nothing to import — the file had no recognizable item rows.');
+      (result.warnings || []).forEach((w) => toast(w, true));
+      await loadInventory();
+    } catch (err) {
+      toast('Import failed: ' + err.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+
+  // ------------------------------------------------------------------
   // Alerts tab: push notifications
   // ------------------------------------------------------------------
   function urlBase64ToUint8Array(base64url) {
